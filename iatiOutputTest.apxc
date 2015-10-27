@@ -1,0 +1,52 @@
+@isTest
+public class iatiOutputTest {
+    public static testMethod void testMyController(){
+        iatiOutput controller = new iatiOutput();
+        String newline = controller.getNewline();
+        String dt = controller.getCurrentDateTime();
+        List<Opportunity> a = controller.getGrantList();
+        List<Opportunity> b = new List<Opportunity>();
+        b = [select iati_activity_id__c,
+                     donor_grant_number__c,
+                     account.name,
+                     account.iati_id__c,
+                     name,
+                     description,
+                     stagename,
+                     iati_activity_status_code__c,
+                     grant_start_date__c,
+                     grant_start_date_iso__c,
+                     closedate,
+                     close_date_iso__c,
+                     grant_new_end_date__c,
+                     grant_new_end_date_iso__c,
+                     grant_manager__c,
+                     grant_manager__r.name,
+                     grant_manager__r.title,
+                     prime_lead_organization__c,
+                     prime_lead_organization__r.name,
+                     prime_lead_organization__r.iati_id__c,
+                     prime_lead_organization__r.iati_organization_type_code__c,
+                     prime_lead_grant_number__c,
+                     account.iati_organization_type_code__c,
+                     amount,
+                     currency__c,
+                     currency__r.currency_code__c,
+                     notification_date__c,
+                     notification_date_iso__c,
+                     project_website__c,
+                     ok_to_publish__c,
+                     solicitation_status__c,
+                     cost_center__c,
+                     (select country__c, country__r.name, country__r.iso2_code__c from opportunity_countries__r),
+                     (select partner__c, partner__r.name,partner__r.iati_id__c, partner__r.iati_organization_type_code__c from grant_partners__r),
+                     (select sector__c, sector__r.name, sector__r.code__c from opportunity_sectors__r)
+                     from opportunity
+                     where recordtypeid in (select id from recordtype where name ='grant')
+                     AND solicitation_status__c = 'Awarded'
+                     AND ok_to_publish__c = 'Yes'
+                    ];
+        System.assertEquals(a, b);
+        
+    }
+}
