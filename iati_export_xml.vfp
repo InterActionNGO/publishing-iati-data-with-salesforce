@@ -1,0 +1,170 @@
+<apex:page controller="iatiOutput" contentType="text/plain#iati_activities.xml" showHeader="false" sidebar="false" cache="false">
+    <!-- Variables -->
+    <apex:variable value="{!currentDateTime}" var="now"/>
+    <apex:variable value="{!'InterAction'}" var="identityName"/>
+    <apex:variable value="{!'US-EIN-13-3287064'}" var="identityRef"/>
+    <apex:variable value="{!'22'}" var="identityTypeCode"/>
+    <apex:variable value="{!'1'}" var="startDateTypeCode"/>
+    <apex:variable value="{!'3'}" var="endDateTypeCode"/>
+    <apex:variable value="{!'4'}" var="newEndDateTypeCode"/>
+    <apex:variable value="{!'2'}" var="contactTypeCode"/>
+    <apex:variable value="{!'202-667-8227'}" var="contactPhone"/>
+    <apex:variable value="{!'open@interaction.org'}" var="contactEmail"/>
+    <apex:variable value="{!'2'}" var="accountableRoleCode"/>
+    <apex:variable value="{!'1'}" var="fundingRoleCode"/>
+    <apex:variable value="{!'4'}" var="implementingRoleCode"/>
+    <apex:variable value="{!'2'}" var="sectorVocabCode"/>
+    <apex:variable value="{!'2'}" var="commitmentTypeCode"/>
+    <apex:variable value="{!'B9'}" var="otherIdentifierTypeCode"/>
+    <apex:variable value="{!'A12'}" var="websiteCategoryCode"/>
+    <!-- End Variables -->
+    <!-- Output -->
+    <apex:outputtext value="{!'<?xml version=\"1.0\" encoding=\"UTF-8\" ?>'}"/>
+    <iati-activities generated-datetime="{!now}" version="2.01">
+        <apex:repeat value="{!grantList}" var="g" >
+            <iati-activity default-currency="USD" last-updated-datetime="{!now}" xml:lang="EN">
+                <!-- IATI Id -->
+                <iati-identifier>{!g.IATI_Activity_ID__c}</iati-identifier>
+                <!-- Reporting Organization -->
+                <reporting-org ref="{!identityRef}" type="{!identityTypeCode}">
+                    <narrative>{!identityName}</narrative>
+                </reporting-org>
+                <!-- Activity Title -->
+                <title>
+                    <narrative>{!htmlencode(g.name)}</narrative>
+                </title>
+                <!-- Add description type if description is not null, otherwise print an empty description narrative (desc. is req. in IATI standard) -->
+                <apex:outputText rendered="{!g.description <> null}">
+                    <description type="{!'1'}">
+                        <narrative>{!htmlencode(g.description)}</narrative>
+                    </description>
+                </apex:outputText>
+                <apex:outputText rendered="{!g.description == null}">
+                    <description>
+                        <narrative></narrative>
+                    </description>
+                </apex:outputText>
+                <!-- Participating Organiations in various roles -->
+                <!-- InterAction is always an implementer -->
+                <participating-org ref="{!identityRef}" type="{!identityTypeCode}" role="{!implementingRoleCode}">
+                    <narrative>{!identityName}</narrative>
+                </participating-org>
+                <!-- Accountable organization is prime awardee -->
+                <participating-org ref="{!g.prime_lead_organization__r.iati_id__c}" type="{!g.prime_lead_organization__r.iati_organization_type_code__c}" role="{!accountableRoleCode}">
+                    <narrative>{!htmlencode(g.prime_lead_organization__r.name)}</narrative>
+                </participating-org>
+                <!-- Funding Org: if non-InterAction prime awardee then prime is funder, otherwise funding is donor provided -->
+                <apex:outputtext rendered="{!g.prime_lead_organization__r.name <> 'InterAction'}">
+                    <participating-org ref="{!g.prime_lead_organization__r.iati_id__c}" type="{!g.prime_lead_organization__r.iati_organization_type_code__c}" role="{!fundingRoleCode}">
+                        <narrative>{!htmlencode(g.prime_lead_organization__r.name)}</narrative>
+                    </participating-org>
+                </apex:outputtext>
+                <apex:outputtext rendered="{!g.prime_lead_organization__r.name == 'InterAction'}">
+                    <participating-org ref="{!g.account.iati_id__c}" type="{!g.account.iati_organization_type_code__c}" role="{!fundingRoleCode}">
+                        <narrative>{!htmlencode(g.account.name)}</narrative>
+                    </participating-org>
+                </apex:outputtext>
+                <!-- Partner Implementers (Don't show if there are none)-->
+                <apex:outputtext rendered="{!g.grant_partners__r.size > 0}">
+                    <apex:repeat value="{!g.grant_partners__r}" var="gp">
+                        <participating-org ref="{!gp.partner__r.iati_id__c}" type="{!gp.partner__r.iati_organization_type_code__c}" role="{!implementingRoleCode}">
+                            <narrative>{!htmlencode(gp.partner__r.name)}</narrative>
+                        </participating-org>
+                    </apex:repeat>
+                </apex:outputtext>
+                <!-- Other identifier(s), Prime and/or top-level donor -->
+                <apex:outputtext rendered="{!g.Prime_Lead_Grant_Number__c <> null && g.Prime_Lead_Organization__c <> 'InterAction'}">
+                    <other-identifier ref="{!g.Prime_Lead_Grant_Number__c}" type="{!otherIdentifierTypeCode}">
+                        <owner-org ref="{!g.prime_lead_organization__r.IATI_ID__c}">
+                            <narrative>{!htmlencode(g.prime_lead_organization__r.name)}</narrative>
+                        </owner-org>
+                    </other-identifier>
+                </apex:outputtext>
+                <apex:outputtext rendered="{!g.Donor_Grant_Number__c <> null && g.Prime_Lead_Organization__c == 'InterAction'}">
+                    <other-identifier ref="{!g.Donor_Grant_Number__c}" type="{!otherIdentifierTypeCode}">
+                        <owner-org ref="{!g.account.IATI_ID__c}">
+                            <narrative>{!htmlencode(g.account.name)}</narrative>
+                        </owner-org>
+                    </other-identifier>
+                </apex:outputtext>
+                <other-identifier ref="{!g.cost_center__c}" type="A1">
+                    <owner-org ref="{!identityRef}">
+                        <narrative>{!identityName}</narrative>
+                    </owner-org>
+                </other-identifier>
+                <!-- Activity Status -->
+                <activity-status code="{!g.iati_activity_status_code__c}"/>
+                <!-- Start / End Dates -->
+                <activity-date iso-date="{!g.grant_start_date_iso__c}" type="{!startDateTypeCode}">
+                    <narrative>start-planned</narrative>
+                </activity-date>
+                <activity-date iso-date="{!g.close_date_iso__c}" type="{!endDateTypeCode}">
+                    <narrative>end-planned</narrative>
+                </activity-date>
+                <apex:outputtext rendered="{!g.Grant_New_End_Date__c <> null}">
+                    <activity-date iso-date="{!g.Grant_New_End_Date__c}" type="{!newEndDateTypeCode}">
+                        <narrative>end-actual</narrative>
+                    </activity-date>
+                </apex:outputtext>
+                <!-- Contact Info -->
+                <contact-info type="{!contactTypeCode}">
+                    <organisation>
+                        <narrative>{!identityName}</narrative>
+                    </organisation>
+                    <person-name>
+                        <narrative>{!g.grant_manager__r.name}</narrative>
+                    </person-name>
+                    <job-title>
+                        <narrative>{!htmlencode(g.grant_manager__r.title)}</narrative>
+                    </job-title>
+                    <telephone>{!contactPhone}</telephone>
+                    <email>{!contactEmail}</email>
+                </contact-info>
+                <!-- Recipient Countries -->
+                <apex:outputtext rendered="{!g.opportunity_countries__r.size > 0}">
+                    <apex:repeat value="{!g.opportunity_countries__r}" var="oc">
+                        <recipient-country code="{!oc.country__r.iso2_code__c}" percentage="{!round((100 / g.opportunity_countries__r.size),2)}"/>
+                    </apex:repeat>
+                </apex:outputtext>
+                <!-- Sectors -->
+                <apex:outputtext rendered="{!g.opportunity_sectors__r.size > 0}">
+                    <apex:repeat value="{!g.opportunity_sectors__r}" var="os">
+                        <sector vocabulary="{!sectorVocabCode}" code="{!os.sector__r.code__c}" percentage="{!round((100 / g.opportunity_sectors__r.size),2)}"/>
+                    </apex:repeat>
+                </apex:outputtext>
+                <!-- Transaction/ Grant $ Details -->
+                <transaction ref="{!g.Cost_center__c}">
+                    <transaction-type code="{!commitmentTypeCode}"/>
+                    <transaction-date iso-date="{!g.Notification_Date_ISO__c}"/>
+                    <value currency="{!g.currency__r.Currency_Code__c}" value-date="{!g.Notification_Date_ISO__c}">
+                        {!g.amount}
+                    </value>
+                    <!-- Decide who goes here -->
+                    <apex:outputtext rendered="{!g.prime_lead_organization__r.name <> 'InterAction'}">
+                        <provider-org ref="{!g.prime_lead_organization__r.IATI_ID__c}">
+                            <narrative>{!htmlencode(g.prime_lead_organization__r.name)}</narrative>
+                        </provider-org>
+                    </apex:outputtext>
+                    <apex:outputtext rendered="{!g.prime_lead_organization__r.name == 'InterAction'}">
+                        <provider-org ref="{!g.account.IATI_ID__c}">
+                            <narrative>{!htmlencode(g.account.name)}</narrative>
+                        </provider-org>
+                    </apex:outputtext>
+                    <receiver-org ref="{!identityRef}">
+                        <narrative>{!identityName}</narrative>
+                    </receiver-org>
+                </transaction>
+                <!-- Website -->
+                <apex:outputtext rendered="{!g.Project_Website__c <> null}">
+                    <document-link url="{!g.project_website__c}" format="text/html">
+                        <title>
+                            <narrative>Project website</narrative>
+                        </title>
+                        <category code="{!websiteCategoryCode}"/>
+                        <language code="EN"/>
+                    </document-link>
+                </apex:outputtext>
+            </iati-activity>
+        </apex:repeat>
+    </iati-activities>
+</apex:page>
