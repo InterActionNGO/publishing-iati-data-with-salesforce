@@ -102,7 +102,7 @@
                     <narrative>end-planned</narrative>
                 </activity-date>
                 <apex:outputtext rendered="{!g.Grant_New_End_Date__c <> null}">
-                    <activity-date iso-date="{!g.Grant_New_End_Date__c}" type="{!newEndDateTypeCode}">
+                    <activity-date iso-date="{!g.Grant_New_End_Date_ISO__c}" type="{!newEndDateTypeCode}">
                         <narrative>end-actual</narrative>
                     </activity-date>
                 </apex:outputtext>
